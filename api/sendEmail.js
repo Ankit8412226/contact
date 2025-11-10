@@ -4,7 +4,17 @@ import nodemailer from "nodemailer";
 dotenv.config();
 
 export default async function handler(req, res) {
-  // Allow only POST requests
+  // 🔹 Set CORS headers
+  res.setHeader("Access-Control-Allow-Origin", "*"); // allow all origins
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // Handle preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // Allow only POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -16,7 +26,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Configure Nodemailer
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT) || 465,
@@ -31,7 +40,6 @@ export default async function handler(req, res) {
     await transporter.verify();
     console.log("✅ SMTP connection successful");
 
-    // Send email
     const info = await transporter.sendMail({
       from: `"${name}" <${process.env.SMTP_USER}>`,
       to: process.env.SMTP_USER,
