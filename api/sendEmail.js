@@ -1,19 +1,14 @@
 import dotenv from "dotenv";
-import express from "express";
 import nodemailer from "nodemailer";
 
 dotenv.config();
 
-const app = express();
-app.use(express.json());
+export default async function handler(req, res) {
+  // Allow only POST requests
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-// Health check route
-app.get("/health", (req, res) => {
-  res.send("✅ Contact API running");
-});
-
-// Send email route
-app.post("/send-email", async (req, res) => {
   const { name, phone, email, message } = req.body;
 
   if (!name || !phone || !email || !message) {
@@ -21,7 +16,7 @@ app.post("/send-email", async (req, res) => {
   }
 
   try {
-    // Configure transporter
+    // Configure Nodemailer
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT) || 465,
@@ -33,15 +28,10 @@ app.post("/send-email", async (req, res) => {
     });
 
     // Verify SMTP connection
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error("❌ SMTP connection failed:", error);
-      } else {
-        console.log("✅ SMTP connection successful");
-      }
-    });
+    await transporter.verify();
+    console.log("✅ SMTP connection successful");
 
-    // Send the email
+    // Send email
     const info = await transporter.sendMail({
       from: `"${name}" <${process.env.SMTP_USER}>`,
       to: process.env.SMTP_USER,
@@ -56,15 +46,9 @@ app.post("/send-email", async (req, res) => {
     });
 
     console.log("📩 Email sent:", info.messageId);
-    res.json({ success: true, message: "Email sent successfully" });
+    res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (error) {
     console.error("❌ Email error:", error);
     res.status(500).json({ error: "Failed to send email", details: error.message });
   }
-});
-
-// Start the server (only for local)
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+}
