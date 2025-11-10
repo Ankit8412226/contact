@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 // Health check route
-app.get("/", (req, res) => {
+app.get("/health", (req, res) => {
   res.send("✅ Contact API running");
 });
 
